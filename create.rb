@@ -2,6 +2,7 @@
 
 require 'fileutils'
 require 'securerandom'
+require 'time'
 
 if ARGV.length != 8
 	STDERR.puts "Usage:\t#{$0} data.tsv metadata.tsv imageDir fontDir cssDir jsDir audioDir outputDir"
@@ -19,6 +20,11 @@ class Page
 		@startTime = startTime
 		@endTime   = endTime
 		@audioFile = audioFile
+	end
+
+	def duration()
+		durationInSeconds = Time.parse(endTime) - Time.parse(startTime)
+		return Time.at(durationInSeconds).utc.strftime("%H:%M:%S.%L")
 	end
 
 end
@@ -164,7 +170,13 @@ END
 	content_opf.puts()
 		
 	content_opf.puts("\t\t<!-- COVER -->")
-	content_opf.puts("\t\t<meta name=\"cover\" content=\"#{pages[0].number}\" />	<!-- REQUIRED -->")
+	content_opf.puts("\t\t<meta name=\"cover\" content=\"imagePage#{pages[0].number}\" />	<!-- REQUIRED -->")
+	content_opf.puts()
+
+	content_opf.puts("\t\t<!-- Media duration of each page -->")
+	pages.each{|page|
+		content_opf.puts("\t\t<meta property=\"media:duration\" refines=\"#mediaOverlayPage#{page.number}\">#{page.duration}</meta>")
+	}
 	content_opf.puts()
 	
 	content_opf.puts("\t\t<!-- Last modified -->")
@@ -185,7 +197,7 @@ END
 	content_opf.puts()
 	
 	content_opf.puts("\t\t<!-- nav -->")
-	content_opf.puts("\t\t<item id=\"toc\" href=\"toc.xhtml\" media-type=\"application/xhtml+xml\" properties=\"nav\" />)")
+	content_opf.puts("\t\t<item id=\"toc\" href=\"toc.xhtml\" media-type=\"application/xhtml+xml\" properties=\"nav\" />")
 	content_opf.puts()
 	
 	content_opf.puts("\t\t<!-- css -->")
@@ -214,9 +226,9 @@ END
 
 	pages.each{|page|
 		content_opf.puts("\t\t<!-- Page #{page.number} -->")
-		content_opf.puts("\t\t<item id=\"page#{page.number}\" media-type=\"application/xhtml+xml\" href=\"#{page.number}.xhtml\" media-overlay=\"mediaOverlayPage#{page.number}\" />")
 		content_opf.puts("\t\t<item id=\"mediaOverlayPage#{page.number}\" href=\"smil/#{page.number}.smil\" media-type=\"application/smil+xml\" />")
-		content_opf.puts("\t\t<item id=\"imagePage#{page.number}\" href=\"images/#{page.number}.png\" media-type=\"image/png\" />")
+		content_opf.puts("\t\t<item id=\"page#{page.number}\" media-type=\"application/xhtml+xml\" href=\"#{page.number}.xhtml\" media-overlay=\"mediaOverlayPage#{page.number}\" />")
+		content_opf.puts("\t\t<item id=\"imagePage#{page.number}\" href=\"images/#{page.number}.png\" media-type=\"image/png\"#{page.number==0 ? " properties=\"cover-image\" " : " "}/>")
 		content_opf.puts()
 	}
 	
@@ -234,6 +246,8 @@ END
 	
 }
 
+
+
 pages.each{|page|
 
 	File.open(outputDir+File::SEPARATOR+"OEBPS"+File::SEPARATOR+"#{page.number}.xhtml", 'w') { |xhtml|
@@ -242,7 +256,7 @@ pages.each{|page|
 		xhtml.puts()
 		xhtml.puts("\t<head>")
 		xhtml.puts("\t\t<meta name=\"viewport\" content=\"width=738, height=985\" />")
-		xhtml.puts("\t\t<meta content=\"charset=UTF-8\"/>")
+		xhtml.puts("\t\t<meta charset=\"UTF-8\" />")
 		xhtml.puts("\t\t<title>#{title}</title>")
 		css_filenames.each{|css_filename|
 			xhtml.puts("\t\t<link href=\"css/#{css_filename}\" type=\"text/css\" rel=\"stylesheet\"/>")
@@ -256,6 +270,20 @@ pages.each{|page|
         xhtml.puts("\t\t\t\t<img class=\"illustration\" src=\"images/#{page.number}.png\" />")
         xhtml.puts("\t\t\t</div>")
 		xhtml.puts("\t\t</div>")
+# 		xhtml.puts("\t\t<script>")
+# 		xhtml.puts("document.body.style.backgroundColor = \"#AA0000\";")
+# 		xhtml.puts("x = document.getElementById('#{page.clip}');")
+# 		xhtml.puts("function hasGetUserMedia() {")
+# 		xhtml.puts("  return !!(navigator.getUserMedia || navigator.webkitGetUserMedia ||")
+# 		xhtml.puts("            navigator.mozGetUserMedia || navigator.msGetUserMedia);")
+# 		xhtml.puts("}")
+# 		xhtml.puts()
+# 		xhtml.puts("if (hasGetUserMedia()) {")
+# 		xhtml.puts("x.style.backgroundColor = \"#00AA00\";")
+# 		xhtml.puts("} else {")
+# 		xhtml.puts("x.style.backgroundColor = \"#0000AA\";")
+# 		xhtml.puts("}")
+# 		xhtml.puts("</script>")
 		xhtml.puts("\t</body>")
 		xhtml.puts()
 		xhtml.puts("</html>")
@@ -281,6 +309,50 @@ pages.each{|page|
 	}
 
 
+}
+
+File.open(outputDir+File::SEPARATOR+"OEBPS"+File::SEPARATOR+"toc.xhtml", 'w') { |toc| 
+	toc.puts("<?xml version=\"1.0\" encoding=\"utf-8\"?>")
+	toc.puts("<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\"")
+    toc.puts("      xmlns:ibooks=\"http://vocabulary.itunes.apple.com/rdf/ibooks/vocabulary-extensions-1.0\" ")
+    toc.puts("      epub:prefix=\"ibooks: http://vocabulary.itunes.apple.com/rdf/ibooks/vocabulary-extensions-1.0\">")
+    toc.puts()
+    toc.puts("\t<head>")
+    toc.puts("\t<meta charset=\"UTF-8\"/>")
+    toc.puts("\t<meta name=\"viewport\" content=\"width=738, height=985\" />")
+    toc.puts("\t</head>")
+    toc.puts()
+    toc.puts("\t<body>")
+    toc.puts()
+    toc.puts("\t\t<nav epub:type=\"toc\">")
+    toc.puts()
+    toc.puts("\t\t\t<h1 id=\"toc-header\" class=\"center\">Table of Contents</h1>  <!-- only used for page display -->")
+    toc.puts("\t\t\t<ol>")
+    toc.puts("\t\t\t\t\t<li><a href=\"page0000.xhtml\">Cover</a></li>")
+    toc.puts("\t\t\t\t\t<li><a href=\"page0001.xhtml\">Start of Content</a></li>")
+	toc.puts("\t\t\t</ol>")
+    toc.puts("\t\t</nav>")
+    toc.puts()
+    toc.puts("\t\t<nav epub:type=\"landmarks\">")
+    toc.puts("\t\t\t<div class=\"hidden\"> 	<!-- used to hide this section in the TOC page display -->")
+    toc.puts("\t\t\t\t<ol>")
+    toc.puts("\t\t\t\t\t<li><a epub:type=\"cover\" href=\"cover.xhtml\">Cover</a></li>")
+    toc.puts("\t\t\t\t\t<li><a epub:type=\"ibooks:reader-start-page\" href=\"cover.xhtml\">Start Reading</a></li>")
+    toc.puts("\t\t\t\t\t<li><a epub:type=\"bodymatter\" href=\"page0001.xhtml\">Start of Content</a></li>")
+    toc.puts("\t\t\t\t</ol>")
+    toc.puts("\t\t\t</div>")
+    toc.puts("\t\t</nav>")
+    toc.puts()
+    toc.puts("\t\t<nav epub:type=\"page-list\"> 	<!-- this section creates custom page numbering -->")
+    toc.puts("\t\t\t<ol class=\"hidden\">")
+    pages.each{|page|
+    	toc.puts("\t\t\t\t<li><a href=\"page#{page.number}.xhtml\">#{page.number.to_i}</a></li>")
+    }
+    toc.puts("\t\t\t</ol>")
+    toc.puts("\t\t</nav>")
+    toc.puts()
+    toc.puts("\t</body>")
+    toc.puts("</html>")
 }
 
 File.open(outputDir+File::SEPARATOR+"mimetype", 'w') { |mimetype|
