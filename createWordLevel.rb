@@ -9,14 +9,13 @@ if ARGV.length != 8
 	exit(-1)
 end
 
-class Page
+class Clip
 
-	attr_reader :number, :text, :clip, :startTime, :endTime, :audioFile
+	attr_reader :number, :text, :startTime, :endTime, :audioFile
 
-	def initialize(number, text, clip, startTime, endTime, audioFile)
+	def initialize(number, text, startTime, endTime, audioFile)
 		@number    = number
 		@text      = text
-		@clip      = clip
 		@startTime = startTime
 		@endTime   = endTime
 		@audioFile = audioFile
@@ -24,6 +23,38 @@ class Page
 
 	def duration()
 		durationInSeconds = Time.parse(endTime) - Time.parse(startTime)
+		return Time.at(durationInSeconds).utc.strftime("%H:%M:%S.%L")
+	end
+
+
+end
+
+class Segment
+
+	attr_reader :number, :clips
+
+	def initialize(number)
+		@number = number
+		@clips = Array.new
+	end
+
+end
+
+class Page
+
+	attr_reader :number, :segments
+
+	def initialize(number)
+		@number    = number
+		@segments  = Array.new
+	end
+
+	def duration()
+	
+		startTime = @segments.first.clips.first.startTime
+		endTime   = @segments.last.clips.last.endTime
+	
+	    durationInSeconds = Time.parse(endTime) - Time.parse(startTime)
 		return Time.at(durationInSeconds).utc.strftime("%H:%M:%S.%L")
 	end
 
@@ -54,10 +85,28 @@ end
 
 # Read data from data.tsv
 pages=Array.new
+clipNumber=0
 File.open(ARGV[0]).each_line {|line|
-	(number, text, clip, startTime, endTime, audioFile)=line.strip.split("\t")
-	pages.push(Page.new(number, text, clip, startTime, endTime, audioFile))
+	(pageNumber, text, segmentNumber, startTime, endTime, audioFile)=line.strip.split("\t")
 	
+	# Create new page if required
+	if pages.empty? or pageNumber!=pages.last.number
+		page = Page.new(pageNumber)
+		pages.push(page)
+		STDERR.puts("New page:\t#{pageNumber}")
+	end
+	
+	# Create new segment if required
+	if pages.last.segments.empty? or segmentNumber!=pages.last.segments.last.number
+		segment = Segment.new(segmentNumber)
+		pages.last.segments.push(segment)
+		STDERR.puts("New segment:\t#{segmentNumber} on page #{pageNumber}")
+	end
+	
+	# At this point, the current clip is guaranteed to be part of the last segment of the last page
+	pages.last.segments.last.clips.push(Clip.new(clipNumber.to_s.rjust(4, "0"), text, startTime, endTime, audioFile))
+	STDERR.puts("New clip:\t#{clipNumber} in segment #{segmentNumber} on page #{pageNumber}")
+	clipNumber += 1	
 }
 
 # Read metadata from metadata.tsv
@@ -265,21 +314,27 @@ pages.each{|page|
 		xhtml.puts()
 		xhtml.puts("\t<body style=\"background-color: #ffffff; margin: 0;\">")
 		xhtml.puts("\t\t<div class=\"outer\" id=\"#{page.number}Outer\" >")
-        xhtml.puts("\t\t\t<h1 class=\"text\" id=\"#{page.clip}\">#{page.text}</h1>")
+		page.segments.each{|segment|
+			xhtml.print("\t\t\t<h1 class=\"text\" id=\"segment#{segment.number}\">")
+			segment.clips.each{|clip|
+				xhtml.print("\t\t\t<span id=\"#{clip.number}\">#{clip.text.gsub(" ", '&#160;')}</span>")
+			}
+			xhtml.puts("\t\t\t</h1>")
+		}
+#        xhtml.puts("\t\t\t<h1 class=\"text\" id=\"#{page.clip}\">#{page.text}</h1>")
         xhtml.puts("\t\t\t<div class=\"illustrationRegion\">")
         xhtml.puts("\t\t\t\t<img class=\"illustration\" src=\"images/#{page.number}.png\" />")
         xhtml.puts("\t\t\t</div>")
 		xhtml.puts("\t\t</div>")
-		xhtml.puts("<form action=\"/action_page.php\">")
-		xhtml.puts("<select name=\"cars\">")
-		xhtml.puts("  <option value=\"volvo\">Volvo</option>")
-		xhtml.puts("  <option value=\"saab\">Saab</option>")
-		xhtml.puts("  <option value=\"fiat\">Fiat</option>")
-		xhtml.puts("  <option value=\"audi\">Audi</option>")
-		xhtml.puts("</select>")
-		xhtml.puts("<br />")
-		#xhtml.puts("<input type=\"submit\" />")
-		xhtml.puts("</form>")
+# 		xhtml.puts("<form action=\"/action_page.php\">")
+# 		xhtml.puts("<select name=\"cars\">")
+# 		xhtml.puts("  <option value=\"volvo\">Volvo</option>")
+# 		xhtml.puts("  <option value=\"saab\">Saab</option>")
+# 		xhtml.puts("  <option value=\"fiat\">Fiat</option>")
+# 		xhtml.puts("  <option value=\"audi\">Audi</option>")
+# 		xhtml.puts("</select>")
+# 		xhtml.puts("<br />")
+# 		xhtml.puts("</form>")
 # 		xhtml.puts("\t\t<script>")
 # 		xhtml.puts("document.body.style.backgroundColor = \"#AA0000\";")
 # 		xhtml.puts("x = document.getElementById('#{page.clip}');")
@@ -307,10 +362,16 @@ pages.each{|page|
 		smil.puts()
 	  	smil.puts("\t<body>")
 		smil.puts()
-		smil.puts("\t\t<par id=\"id#{page.number}\">")
-		smil.puts("\t\t\t<text src=\"../#{page.number}.xhtml##{page.clip}\"/>")
-		smil.puts("\t\t\t<audio clipBegin=\"#{page.startTime}\" clipEnd=\"#{page.endTime}\" src=\"../media/#{page.audioFile}\"/>")
-		smil.puts("\t\t</par>")
+		page.segments.each{|segment|
+			smil.puts("\t\t<seq>")
+			segment.clips.each{|clip|
+				smil.puts("\t\t\t<par id=\"id#{clip.number}\">")
+				smil.puts("\t\t\t\t<text src=\"../#{page.number}.xhtml##{clip.number}\"/>")
+				smil.puts("\t\t\t\t<audio clipBegin=\"#{clip.startTime}\" clipEnd=\"#{clip.endTime}\" src=\"../media/#{clip.audioFile}\"/>")
+				smil.puts("\t\t\t</par>")	
+			}
+			smil.puts("\t\t</seq>")
+		}
 		smil.puts()
   		smil.puts("\t</body>")
 		smil.puts()
