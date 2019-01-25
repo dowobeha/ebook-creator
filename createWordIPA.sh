@@ -14,4 +14,4 @@
 # 
 # open ${file}
 
-./createWordLevel.rb dataWordLevel.tsv metadata.tsv images fonts css OEBPS/js audio Kulusiinkut
+./createWordLevel.rb dataWordLevelIPA.tsv metadata.tsv images fonts css OEBPS/js audio Kulusiinkut_IPA

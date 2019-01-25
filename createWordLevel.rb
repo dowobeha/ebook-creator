@@ -42,10 +42,11 @@ end
 
 class Page
 
-	attr_reader :number, :segments
+    attr_reader :number, :zero_padded_number, :segments
 
 	def initialize(number)
 		@number    = number
+        @zero_padded_number = number.to_s.rjust(4, "0")
 		@segments  = Array.new
 	end
 
@@ -219,7 +220,8 @@ END
 	content_opf.puts()
 		
 	content_opf.puts("\t\t<!-- COVER -->")
-	content_opf.puts("\t\t<meta name=\"cover\" content=\"imagePage#{pages[0].number}\" />	<!-- REQUIRED -->")
+#	content_opf.puts("\t\t<meta name=\"cover\" content=\"imagePage#{pages[0].number}\" />	<!-- REQUIRED -->")
+	content_opf.puts("\t\t<meta name=\"cover\" content=\"coverImage\" />	<!-- REQUIRED -->")
 	content_opf.puts()
 
 	content_opf.puts("\t\t<!-- Media duration of each page -->")
@@ -273,11 +275,16 @@ END
 	}
 	content_opf.puts()
 
+	content_opf.puts("\t\t<!-- Cover image -->")
+	content_opf.puts("\t\t<item id=\"coverImage\" href=\"images/cover.png\" media-type=\"image/png\" properties=\"cover-image\" />")
+	content_opf.puts()
+	
 	pages.each{|page|
 		content_opf.puts("\t\t<!-- Page #{page.number} -->")
 		content_opf.puts("\t\t<item id=\"mediaOverlayPage#{page.number}\" href=\"smil/#{page.number}.smil\" media-type=\"application/smil+xml\" />")
 		content_opf.puts("\t\t<item id=\"page#{page.number}\" media-type=\"application/xhtml+xml\" href=\"#{page.number}.xhtml\" media-overlay=\"mediaOverlayPage#{page.number}\" />")
-		content_opf.puts("\t\t<item id=\"imagePage#{page.number}\" href=\"images/#{page.number}.png\" media-type=\"image/png\"#{page.number==0 ? " properties=\"cover-image\" " : " "}/>")
+#		content_opf.puts("\t\t<item id=\"imagePage#{page.number}\" href=\"images/#{page.number}.png\" media-type=\"image/png\"#{page.number==0 ? " properties=\"cover-image\" " : " "}/>")
+		content_opf.puts("\t\t<item id=\"imagePage#{page.number}\" href=\"images/#{page.zero_padded_number}.png\" media-type=\"image/png\" />")
 		content_opf.puts()
 	}
 	
@@ -287,7 +294,7 @@ END
 	content_opf.puts()
 	content_opf.puts("\t<spine>	<!-- Defines the order of the pages -->")
 	pages.each{|page|
-		content_opf.puts("\t\t<itemref idref=\"page#{page.number}\" />")
+		content_opf.puts("\t\t<itemref idref=\"page#{page.number}\"#{page.number==pages.first.number ? " linear=\"no\" " : " "}/>") #  #{page.number==pages.last.number ? "linear=\"no\" " : ""}
 	}
 	content_opf.puts("\t</spine>")	
 	
@@ -314,18 +321,27 @@ pages.each{|page|
 		xhtml.puts()
 		xhtml.puts("\t<body style=\"background-color: #ffffff; margin: 0;\">")
 		xhtml.puts("\t\t<div class=\"outer\" id=\"#{page.number}Outer\" >")
-		page.segments.each{|segment|
-			xhtml.print("\t\t\t<h1 class=\"text\" id=\"segment#{segment.number}\">")
+		page.segments.each_with_index{|segment,index|
+			if index==0 then
+				xhtml.print("\t\t\t<h1 class=\"text\" id=\"segment#{segment.number}\">")
+			else 
+				xhtml.print("\t\t\t<p class=\"plaintext\" id=\"segment#{segment.number}\">")
+			end
 			segment.clips.each{|clip|
 				xhtml.print("\t\t\t<span id=\"#{clip.number}\">#{clip.text.gsub(" ", '&#160;')}</span>")
 			}
-			xhtml.puts("\t\t\t</h1>")
+			if index==0 then
+				xhtml.puts("\t\t\t</h1>")
+				xhtml.puts("\t\t\t<div class=\"#{page.number==pages.first.number ? "flexHeightIllustrationRegion" : "illustrationRegion"}\">")
+		        xhtml.puts("\t\t\t\t<img class=\"#{page.number==pages.first.number ? "flexHeightIllustration" : "illustration"}\" src=\"images/#{page.zero_padded_number}.png\" />")
+        		xhtml.puts("\t\t\t</div>")
+			else 
+				xhtml.puts("\t\t\t</p>")
+			end
 		}
-#        xhtml.puts("\t\t\t<h1 class=\"text\" id=\"#{page.clip}\">#{page.text}</h1>")
-        xhtml.puts("\t\t\t<div class=\"illustrationRegion\">")
-        xhtml.puts("\t\t\t\t<img class=\"illustration\" src=\"images/#{page.number}.png\" />")
-        xhtml.puts("\t\t\t</div>")
 		xhtml.puts("\t\t</div>")
+#        xhtml.puts("\t\t\t<h1 class=\"text\" id=\"#{page.clip}\">#{page.text}</h1>")
+
 # 		xhtml.puts("<form action=\"/action_page.php\">")
 # 		xhtml.puts("<select name=\"cars\">")
 # 		xhtml.puts("  <option value=\"volvo\">Volvo</option>")
@@ -349,6 +365,7 @@ pages.each{|page|
 # 		xhtml.puts("x.style.backgroundColor = \"#0000AA\";")
 # 		xhtml.puts("}")
 # 		xhtml.puts("</script>")
+		xhtml.puts("\t<span xml:id=\"page#{page.number}\" epub:type=\"pagebreak\">#{page.number.to_i}</span>")
 		xhtml.puts("\t</body>")
 		xhtml.puts()
 		xhtml.puts("</html>")
@@ -399,25 +416,27 @@ File.open(outputDir+File::SEPARATOR+"OEBPS"+File::SEPARATOR+"toc.xhtml", 'w') { 
     toc.puts()
     toc.puts("\t\t\t<h1 id=\"toc-header\" class=\"center\">Table of Contents</h1>  <!-- only used for page display -->")
     toc.puts("\t\t\t<ol>")
-    toc.puts("\t\t\t\t\t<li><a href=\"page0000.xhtml\">Cover</a></li>")
-    toc.puts("\t\t\t\t\t<li><a href=\"page0001.xhtml\">Start of Content</a></li>")
+    toc.puts("\t\t\t\t\t<li><a epub:type=\"title-page\" href=\"#{pages.first.number}.xhtml\">Title page</a></li>")
+    toc.puts("\t\t\t\t\t<li><a epub:type=\"bodymatter\" href=\"0001.xhtml\">Start of Content</a></li>")
 	toc.puts("\t\t\t</ol>")
     toc.puts("\t\t</nav>")
     toc.puts()
     toc.puts("\t\t<nav epub:type=\"landmarks\">")
-    toc.puts("\t\t\t<div class=\"hidden\"> 	<!-- used to hide this section in the TOC page display -->")
+#   toc.puts("\t\t\t<div class=\"hidden\"> 	<!-- used to hide this section in the TOC page display -->")
+    toc.puts("\t\t\t<div>")
     toc.puts("\t\t\t\t<ol>")
-    toc.puts("\t\t\t\t\t<li><a epub:type=\"cover\" href=\"cover.xhtml\">Cover</a></li>")
-    toc.puts("\t\t\t\t\t<li><a epub:type=\"ibooks:reader-start-page\" href=\"cover.xhtml\">Start Reading</a></li>")
-    toc.puts("\t\t\t\t\t<li><a epub:type=\"bodymatter\" href=\"page0001.xhtml\">Start of Content</a></li>")
+    toc.puts("\t\t\t\t\t<li><a epub:type=\"title-page\" href=\"#{pages.first.number}.xhtml\">Title</a></li>")
+    toc.puts("\t\t\t\t\t<li><a epub:type=\"cover\" href=\"0000.xhtml\">Cover</a></li>")
+    toc.puts("\t\t\t\t\t<li><a epub:type=\"ibooks:reader-start-page\" href=\"0000.xhtml\">Start Reading</a></li>")
+    toc.puts("\t\t\t\t\t<li><a epub:type=\"bodymatter\" href=\"0000.xhtml\">Start of Content</a></li>")
     toc.puts("\t\t\t\t</ol>")
     toc.puts("\t\t\t</div>")
     toc.puts("\t\t</nav>")
     toc.puts()
     toc.puts("\t\t<nav epub:type=\"page-list\"> 	<!-- this section creates custom page numbering -->")
-    toc.puts("\t\t\t<ol class=\"hidden\">")
+#    toc.puts("\t\t\t<ol class=\"hidden\">")
     pages.each{|page|
-    	toc.puts("\t\t\t\t<li><a href=\"page#{page.number}.xhtml\">#{page.number.to_i}</a></li>")
+    	toc.puts("\t\t\t\t<li><a href=\"#{page.number}.xhtml\">#{page.number.to_i}</a></li>")
     }
     toc.puts("\t\t\t</ol>")
     toc.puts("\t\t</nav>")

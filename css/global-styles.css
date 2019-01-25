@@ -8,6 +8,13 @@
         src: url(../fonts/LiberationSans-Bold.ttf);
 }
 
+@font-face {
+    font-family: "LiberationSans-Regular";
+    font-style: normal;
+    font-weight: normal;
+        src: url(../fonts/LiberationSans-Regular.ttf);
+}
+
 body {
 	width: 738px;
 	height: 985px;
@@ -38,6 +45,35 @@ body {
     font-size: xx-large;
     font-family: "LiberationSans-Bold";
 }
+
+.plaintext {
+    background-color: #ffffff;   
+    margin: 0 auto;   
+    width: 100%;    
+    display: flex;   
+    justify-content: center;   
+    align-items: center; 
+    font-size: large;
+    font-family: "LiberationSans-Bold";
+}
+
+.flexHeightIllustrationRegion {
+    background-color: #ffffff;   
+    margin: 0 0 0 0;   
+    width: 100%;  
+    height: auto; 
+    padding: 0px;   
+    display: flex;   
+    justify-content: center;   
+    align-items: center;
+}
+
+.flexHeightIllustration {
+    height: 90%; 
+    width: auto; 
+    margin: 0 0 0 0; 
+}
+
 
 .illustrationRegion {
     background-color: #ffffff;   
