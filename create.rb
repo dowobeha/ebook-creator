@@ -142,9 +142,7 @@ File.open(outputDir+File::SEPARATOR+"OEBPS"+File::SEPARATOR+"content.opf", 'w') 
     header = <<END
 <?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://www.idpf.org/2007/opf" unique-identifier="book-id" version="3.0" prefix="rendition: http://www.idpf.org/vocab/rendition/# ibooks: http://vocabulary.itunes.apple.com/rdf/ibooks/vocabulary-extensions-1.0/">
-
 	<metadata xmlns="http://www.idpf.org/2007/opf" xmlns:dc="http://purl.org/dc/elements/1.1/" >
-
 		<!-- EPUB3 SPECIFICATIONS -->
 		<meta property="rendition:layout">pre-paginated</meta>
 		<meta property="rendition:spread">auto</meta>
@@ -154,7 +152,6 @@ File.open(outputDir+File::SEPARATOR+"OEBPS"+File::SEPARATOR+"content.opf", 'w') 
 		<meta property="ibooks:version">1.0</meta>	
 		<meta property="ibooks:specified-fonts">true</meta>
 		<meta property="ibooks:binding">true</meta>
-
 END
 
 	footer="</package>"

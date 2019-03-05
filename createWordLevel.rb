@@ -5,7 +5,8 @@ require 'securerandom'
 require 'time'
 
 if ARGV.length != 8
-	STDERR.puts "Usage:\t#{$0} data.tsv metadata.tsv imageDir fontDir cssDir jsDir audioDir outputDir"
+	#STDERR.puts "Usage:\t#{$0} data.tsv metadata.tsv imageDir fontDir cssDir jsDir audioDir outputDir"
+	STDERR.puts "Drop a folder with the following files here: \n data.tsv \n metadata.tsv \n image directory \n font directory \n css directory \n javascript directory \n audio directory \n output directory"
 	exit(-1)
 end
 
