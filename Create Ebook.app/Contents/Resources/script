@@ -49,4 +49,4 @@ for d in *; do
 
 
 done
-ruby ../create.rb ${data} ${meta} ${images} ${fonts} ${css} ${js} ${audio} ${output}
+ruby ../createWordLevel.rb ${data} ${meta} ${images} ${fonts} ${css} ${js} ${audio} ${output}
