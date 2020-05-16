@@ -23,7 +23,11 @@ class Page
 	end
 
 	def duration()
-		durationInSeconds = Time.parse(endTime) - Time.parse(startTime)
+		if startTime.include?(":")
+	            durationInSeconds = Time.parse(endTime) - Time.parse(startTime)
+        	else
+	            durationInSeconds = endTime - startTime
+        	end
 		return Time.at(durationInSeconds).utc.strftime("%H:%M:%S.%L")
 	end
 
