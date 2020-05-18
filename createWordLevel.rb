@@ -23,7 +23,11 @@ class Clip
 	end
 
 	def duration()
-		durationInSeconds = Time.parse(endTime) - Time.parse(startTime)
+	       if startTime.include?(":")
+			durationInSeconds = Time.parse(endTime) - Time.parse(startTime)
+               else
+			durationInSeconds = endTime.to_f - startTime.to_f
+                end
 		return Time.at(durationInSeconds).utc.strftime("%H:%M:%S.%L")
 	end
 
@@ -55,8 +59,11 @@ class Page
 	
 		startTime = @segments.first.clips.first.startTime
 		endTime   = @segments.last.clips.last.endTime
-	
-	    durationInSeconds = Time.parse(endTime) - Time.parse(startTime)
+		if startTime.include?(":")
+			durationInSeconds = Time.parse(endTime) - Time.parse(startTime)
+        else
+			durationInSeconds = endTime.to_f - startTime.to_f
+        end
 		return Time.at(durationInSeconds).utc.strftime("%H:%M:%S.%L")
 	end
 

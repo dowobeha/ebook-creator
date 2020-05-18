@@ -26,7 +26,7 @@ class Page
         if startTime.include?(":")
             durationInSeconds = Time.parse(endTime) - Time.parse(startTime)
         else
-            durationInSeconds = endTime - startTime
+            durationInSeconds = endTime.to_f - startTime.to_f
         end
 		return Time.at(durationInSeconds).utc.strftime("%H:%M:%S.%L")
 	end
